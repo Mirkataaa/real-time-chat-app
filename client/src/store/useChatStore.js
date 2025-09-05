@@ -3,7 +3,7 @@ import toast from "react-hot-toast";
 import { axiosInstance } from "../lib/axios";
 import { useAuthStore } from "./useAuthStore";
 
-export const useChatStore = create((set , get) => ({
+export const useChatStore = create((set, get) => ({
   messages: [],
   users: [],
   selectedUser: null,
@@ -26,7 +26,7 @@ export const useChatStore = create((set , get) => ({
     set({ isMessagesLoading: true });
     try {
       const res = await axiosInstance.get(`/messages/${userId}`);
-      set({messages: res.data})
+      set({ messages: res.data });
     } catch (error) {
       toast.error(error.response.data.message);
     } finally {
@@ -35,35 +35,39 @@ export const useChatStore = create((set , get) => ({
   },
 
   sendMessage: async (mesasgeData) => {
-    const {selectedUser , messages} = get();
+    const { selectedUser, messages } = get();
 
     try {
-      const res = await axiosInstance.post(`/messages/send/${selectedUser._id}` , mesasgeData);
-      set({messages: [...messages, res.data]})
+      const res = await axiosInstance.post(
+        `/messages/send/${selectedUser._id}`,
+        mesasgeData
+      );
+      set({ messages: [...messages, res.data] });
     } catch (error) {
       toast.error(error.response.data.message);
     }
   },
 
   subscribeToMessages: () => {
-    const {selectedUser} = get();
-    if(!selectedUser) return;
+    const { selectedUser } = get();
+    if (!selectedUser) return;
 
     const socket = useAuthStore.getState().socket;
 
-    // todo: optimize later
-    socket.on('newMessage' , (newMessage) => {
-      set({messages: [...get().messages , newMessage]})
+    socket.on("newMessage", (newMessage) => {
+      const isMessageSendFromSelectedUser =
+        newMessage.senderId !== selectedUser._id;
+      if (isMessageSendFromSelectedUser) return;
+      set({ messages: [...get().messages, newMessage] });
     });
   },
 
   unSubscribeToMessages: () => {
     const socket = useAuthStore.getState().socket;
-    socket.off('newMessage');
+    socket.off("newMessage");
   },
 
   setSelectedUser: async (selectedUser) => {
-    set({selectedUser});
+    set({ selectedUser });
   },
-
 }));
